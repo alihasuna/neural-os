@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NEURAL.OS — How Modern AI Works</title>
+<meta name="description" content="An interactive control-room guide to LLMs, agents, MCP, loops, effort and vibe coding." />
+
+<!-- Fonts (CDN, with system fallback if offline) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+<style>
+/* ============================================================= TOKENS */
+:root{
+  --bg:#05070d; --bg2:#080c16; --bg3:#0b1120;
+  --panel:rgba(12,18,32,.72);
+  --glass:rgba(16,24,42,.55);
+  --line:rgba(120,160,210,.14);
+  --line2:rgba(120,160,210,.28);
+  --cyan:#22d3ee; --violet:#a855f7; --pink:#f472b6;
+  --green:#34d399; --amber:#fbbf24; --blue:#60a5fa; --red:#fb7185;
+  --text:#e8f1f8; --dim:#8497ad; --dim2:#5d6b81;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --r:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans); color:var(--text);
+  background:var(--bg);
+  overflow-x:hidden; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:rgba(34,211,238,.28)}
+a{color:var(--cyan);text-decoration:none}
+button{font-family:inherit;cursor:pointer;color:inherit}
+h1,h2,h3{font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.mono{font-family:var(--mono)}
+.dim{color:var(--dim)}
+
+/* ============================================================= BG CANVAS */
+#bg{position:fixed;inset:0;z-index:0;display:block}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgba(34,211,238,.10), transparent 60%),
+    radial-gradient(1000px 800px at 100% 110%, rgba(168,85,247,.12), transparent 55%),
+    radial-gradient(900px 700px at 0% 100%, rgba(96,165,250,.07), transparent 55%);
+}
+.scanlines{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.35;
+  background:repeating-linear-gradient(to bottom,rgba(255,255,255,.02) 0 1px,transparent 1px 3px);
+  mix-blend-mode:overlay}
+
+.wrap{position:relative;z-index:2}
+
+/* ============================================================= BOOT */
+#boot{position:fixed;inset:0;z-index:60;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .7s ease, visibility .7s}
+#boot.done{opacity:0;visibility:hidden;pointer-events:none}
+.boot-card{width:min(680px,92vw);font-family:var(--mono);font-size:13.5px;
+  color:var(--green);padding:26px 28px;border-radius:14px;
+  border:1px solid rgba(52,211,153,.22);background:rgba(6,12,10,.6);
+  box-shadow:0 0 60px rgba(52,211,153,.08), inset 0 0 40px rgba(52,211,153,.04)}
+.boot-card .b{color:var(--cyan)} .boot-card .v{color:var(--violet)} .boot-card .d{color:var(--dim)}
+.boot-line{white-space:pre-wrap;min-height:1.2em}
+.cursor{display:inline-block;width:9px;height:15px;background:var(--green);
+  margin-left:2px;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.skip{position:fixed;bottom:22px;right:24px;font-family:var(--mono);font-size:11px;
+  color:var(--dim);z-index:61;letter-spacing:.1em}
+.skip button{background:none;border:1px solid var(--line2);border-radius:20px;
+  padding:6px 14px;color:var(--dim);font-family:var(--mono);font-size:11px}
+.skip button:hover{color:var(--cyan);border-color:var(--cyan)}
+
+/* ============================================================= HEADER */
+header{max-width:1200px;margin:0 auto;padding:26px 26px 6px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:13px}
+.logo{width:40px;height:40px;border-radius:11px;position:relative;flex:none;
+  background:linear-gradient(135deg,rgba(34,211,238,.9),rgba(168,85,247,.9));
+  box-shadow:0 0 26px rgba(34,211,238,.4);
+  display:grid;place-items:center;color:#02040a;font-weight:800;font-size:19px}
+.logo::after{content:"";position:absolute;inset:-2px;border-radius:13px;
+  border:1px solid rgba(255,255,255,.25)}
+.brand h1{font-size:19px;letter-spacing:.02em}
+.brand .sub{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.22em;text-transform:uppercase}
+.hbtns{display:flex;gap:10px;flex-wrap:wrap}
+.hbtn{font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+  padding:9px 16px;border-radius:22px;border:1px solid var(--line2);
+  background:rgba(255,255,255,.02);color:var(--text);transition:.2s;display:flex;align-items:center;gap:7px}
+.hbtn:hover{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 18px rgba(34,211,238,.16)}
+.hbtn.live:hover{border-color:var(--pink);color:var(--pink);box-shadow:0 0 18px rgba(244,114,182,.18)}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--pink);
+  box-shadow:0 0 0 0 rgba(244,114,182,.6);animation:pulse 1.8s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(244,114,182,0)}100%{box-shadow:0 0 0 0 rgba(244,114,182,0)}}
+
+/* ============================================================= HERO */
+.hero{max-width:1200px;margin:0 auto;padding:26px 26px 8px;text-align:center}
+.hero h2{font-size:clamp(30px,5.4vw,58px);line-height:1.02;letter-spacing:-.03em;
+  background:linear-gradient(180deg,#fff,#9db4cc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero h2 em{font-style:normal;background:linear-gradient(90deg,var(--cyan),var(--violet));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{max-width:640px;margin:16px auto 0;color:var(--dim);font-size:16px}
+.hint{font-family:var(--mono);font-size:11.5px;color:var(--dim2);margin-top:20px;letter-spacing:.14em}
+.hint b{color:var(--cyan);font-weight:500}
+
+/* ============================================================= MAP */
+#map{position:relative;max-width:1120px;margin:14px auto 0;height:min(74vh,700px)}
+#edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+#edges line{stroke:url(#egrad);stroke-width:1.4;opacity:.5;
+  stroke-dasharray:5 7;animation:dash 22s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-220}}
+#hub{position:absolute;transform:translate(-50%,-50%);width:118px;height:118px;border-radius:50%;
+  display:grid;place-items:center;text-align:center;
+  background:radial-gradient(circle at 50% 40%,rgba(34,211,238,.22),rgba(168,85,247,.14) 60%,transparent 72%);
+  border:1px solid rgba(34,211,238,.4);
+  box-shadow:0 0 60px rgba(34,211,238,.24), inset 0 0 34px rgba(168,85,247,.16);
+  z-index:3}
+#hub .ring{position:absolute;inset:-14px;border-radius:50%;border:1px dashed rgba(120,160,210,.28);
+  animation:spin 40s linear infinite}
+#hub .ring2{position:absolute;inset:-30px;border-radius:50%;border:1px solid rgba(168,85,247,.12);
+  animation:spin 60s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+#hub b{font-size:16px;letter-spacing:.02em;display:block}
+#hub span{font-family:var(--mono);font-size:9px;color:var(--cyan);letter-spacing:.2em}
+
+.node{position:absolute;transform:translate(-50%,-50%);z-index:4;
+  width:132px;padding:14px 12px;border-radius:15px;text-align:center;
+  background:var(--panel);backdrop-filter:blur(9px);
+  border:1px solid var(--line2);
+  box-shadow:0 8px 30px rgba(0,0,0,.4);
+  transition:transform .25s cubic-bezier(.2,.9,.3,1.2),box-shadow .25s,border-color .25s;
+  opacity:0}
+.node .ic{width:34px;height:34px;margin:0 auto 8px;border-radius:10px;display:grid;place-items:center;
+  font-size:17px;font-family:var(--mono);font-weight:700}
+.node .lb{font-size:13px;font-weight:600;letter-spacing:-.01em}
+.node .tg{font-family:var(--mono);font-size:8.5px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+.node:hover,.node:focus-visible{transform:translate(-50%,-50%) scale(1.08);outline:none;
+  border-color:var(--cyan);box-shadow:0 0 34px rgba(34,211,238,.22),0 12px 40px rgba(0,0,0,.5)}
+.node:hover .ic{transform:translateY(-1px)}
+
+/* stacked / mobile */
+#map.stacked{height:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:6px 6px 10px}
+#map.stacked #edges{display:none}
+#map.stacked #hub{position:relative;transform:none;grid-column:1/-1;justify-self:center;margin-bottom:6px}
+#map.stacked .node{position:relative;transform:none;width:auto;opacity:1}
+#map.stacked .node:hover{transform:scale(1.04)}
+
+/* ============================================================= PANEL */
+.scrim{position:fixed;inset:0;z-index:50;background:rgba(3,5,10,.72);
+  backdrop-filter:blur(6px);opacity:0;visibility:hidden;transition:.28s}
+.scrim.open{opacity:1;visibility:visible}
+.panel{position:fixed;z-index:51;top:50%;left:50%;
+  width:min(760px,94vw);max-height:88vh;overflow:auto;
+  transform:translate(-50%,-46%) scale(.97);opacity:0;
+  background:linear-gradient(180deg,rgba(14,20,36,.96),rgba(8,12,22,.98));
+  border:1px solid var(--line2);border-radius:20px;
+  box-shadow:0 30px 90px rgba(0,0,0,.6),0 0 60px rgba(34,211,238,.06);
+  transition:.32s cubic-bezier(.2,.9,.3,1.05)}
+.panel.open{transform:translate(-50%,-50%) scale(1);opacity:1}
+.panel::-webkit-scrollbar{width:9px}
+.panel::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}
+.phead{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:14px;
+  padding:20px 22px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(14,20,36,.98),rgba(14,20,36,.86))}
+.phead .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex:none}
+.phead h3{font-size:20px}
+.phead .tg{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.16em;text-transform:uppercase}
+.pclose{margin-left:auto;width:34px;height:34px;border-radius:10px;border:1px solid var(--line2);
+  background:none;color:var(--dim);font-size:16px;display:grid;place-items:center;flex:none}
+.pclose:hover{color:var(--red);border-color:var(--red)}
+.pbody{padding:20px 22px 26px}
+.pbody .lead{color:var(--dim);font-size:14.5px;margin-bottom:18px}
+.pbody .lead b{color:var(--text);font-weight:600}
+
+/* ============================================================= DEMO UI KIT */
+.demo{border:1px solid var(--line);border-radius:14px;background:rgba(5,8,16,.5);padding:16px;margin-top:6px}
+.demo h4{font-size:12px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:12px}
+.field{width:100%;background:rgba(3,6,12,.7);border:1px solid var(--line2);border-radius:10px;
+  color:var(--text);font-family:var(--mono);font-size:13px;padding:11px 13px;resize:vertical}
+.field:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.12)}
+textarea.field{min-height:70px}
+.btn{border:1px solid var(--cyan);background:rgba(34,211,238,.1);color:var(--cyan);
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em;padding:9px 16px;border-radius:10px;transition:.2s}
+.btn:hover{background:rgba(34,211,238,.2);box-shadow:0 0 18px rgba(34,211,238,.2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.v{border-color:var(--violet);background:rgba(168,85,247,.1);color:var(--violet)}
+.btn.v:hover{background:rgba(168,85,247,.2)}
+.btn.ghost{border-color:var(--line2);background:none;color:var(--dim)}
+.btn.ghost:hover{color:var(--text);border-color:var(--text)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chip{font-family:var(--mono);font-size:12px;padding:4px 8px;border-radius:7px;
+  border:1px solid var(--line2);background:rgba(255,255,255,.03);white-space:pre}
+.bar{height:8px;border-radius:6px;background:rgba(255,255,255,.06);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--cyan),var(--violet));width:0;transition:width .5s}
+.mut{color:var(--dim);font-size:12px}
+.log{font-family:var(--mono);font-size:12px;line-height:1.7;white-space:pre-wrap;color:var(--dim);
+  max-height:230px;overflow:auto;margin-top:4px}
+.log b{color:var(--text)} .log .c{color:var(--cyan)} .log .g{color:var(--green)}
+.log .v{color:var(--violet)} .log .a{color:var(--amber)} .log .p{color:var(--pink)}
+.kbd{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.06);border:1px solid var(--line2);
+  border-radius:5px;padding:1px 6px}
+
+/* candidate bars (LLM demo) */
+.cand{display:grid;grid-template-columns:88px 1fr 46px;gap:10px;align-items:center;margin:6px 0;font-family:var(--mono);font-size:12px}
+.cand .t{text-align:right;color:var(--text)}
+.cand.pick .t{color:var(--cyan)}
+.cand .b{height:16px;border-radius:5px;background:rgba(255,255,255,.05);overflow:hidden}
+.cand .b>i{display:block;height:100%;background:rgba(120,160,210,.35);width:0;transition:width .6s}
+.cand.pick .b>i{background:linear-gradient(90deg,var(--cyan),var(--violet))}
+.cand .p{color:var(--dim);text-align:right}
+
+/* attention demo */
+.attn-sentence{display:flex;flex-wrap:wrap;gap:6px;position:relative;z-index:2}
+.aw{font-family:var(--mono);font-size:14px;padding:6px 9px;border-radius:8px;border:1px solid var(--line2);
+  background:rgba(255,255,255,.03);cursor:pointer;transition:.15s}
+.aw:hover{border-color:var(--cyan)}
+.aw.src{background:rgba(34,211,238,.16);border-color:var(--cyan);color:#fff}
+.aw.tgt{border-color:var(--violet)}
+.attn-wrap{position:relative}
+#attnSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:visible}
+
+/* MCP */
+.mcp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.mcp-srv{border:1px solid var(--line2);border-radius:11px;padding:12px;text-align:center;transition:.2s;background:rgba(255,255,255,.02)}
+.mcp-srv .e{font-size:22px}
+.mcp-srv .n{font-family:var(--mono);font-size:11px;margin-top:6px}
+.mcp-srv.on{border-color:var(--green);background:rgba(52,211,153,.1);box-shadow:0 0 20px rgba(52,211,153,.14)}
+.mcp-srv small{display:block;font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:3px}
+
+/* agents fanout */
+.agents{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
+.ag{border:1px solid var(--line2);border-radius:10px;padding:10px;background:rgba(255,255,255,.02)}
+.ag .n{font-family:var(--mono);font-size:11px;margin-bottom:7px;color:var(--text)}
+
+/* pills / selects */
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{padding:8px 12px;background:none;border:none;color:var(--dim);font-family:var(--mono);font-size:11px;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:none}
+.seg button.on{background:rgba(34,211,238,.16);color:var(--cyan)}
+
+/* ============================================================= LIVE */
+#live{max-width:1120px;margin:56px auto 0;padding:0 26px}
+.live-card{border:1px solid var(--line2);border-radius:20px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(14,18,32,.7),rgba(7,10,20,.85))}
+.live-top{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:12px;color:var(--dim);background:rgba(3,6,12,.4)}
+.dot{width:11px;height:11px;border-radius:50%}
+.d1{background:#fb7185}.d2{background:#fbbf24}.d3{background:#34d399}
+.live-body{padding:20px 22px}
+.live-body h3{font-size:22px;margin-bottom:6px}
+.live-body h3 span{background:linear-gradient(90deg,var(--pink),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.live-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:16px}
+.term{font-family:var(--mono);font-size:13px;background:rgba(3,6,12,.75);border:1px solid var(--line2);
+  border-radius:12px;padding:16px;min-height:180px;max-height:360px;overflow:auto;white-space:pre-wrap;line-height:1.65}
+.term .u{color:var(--cyan)} .term .a{color:var(--text)} .term .sys{color:var(--dim)} .term .err{color:var(--red)}
+.term .caret{display:inline-block;width:8px;height:15px;background:var(--pink);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+.keyrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.note{font-family:var(--mono);font-size:11px;color:var(--dim2);margin-top:10px;line-height:1.6}
+.note b{color:var(--amber);font-weight:500}
+
+footer{max-width:1120px;margin:56px auto 40px;padding:24px 26px 0;border-top:1px solid var(--line);
+  color:var(--dim2);font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+footer b{color:var(--dim)}
+
+@media (max-width:560px){
+  header{padding:18px 16px 4px}
+  .hero{padding:18px 16px}
+  #map{padding:0 10px}
+  .phead{padding:16px}.pbody{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<div class="vignette"></div>
+<div class="scanlines"></div>
+
+<!-- ===================================================== BOOT OVERLAY -->
+<div id="boot">
+  <div class="boot-card">
+    <div class="boot-line" id="bootText"></div>
+  </div>
+</div>
+<div class="skip" id="skipWrap" style="display:none"><button id="skipBtn">SKIP ⏎</button></div>
+
+<div class="wrap">
+  <!-- ===================================================== HEADER -->
+  <header>
+    <div class="brand">
+      <div class="logo">◈</div>
+      <div>
+        <h1>NEURAL<span style="color:var(--cyan)">.</span>OS</h1>
+        <div class="sub">interactive ai field guide</div>
+      </div>
+    </div>
+    <div class="hbtns">
+      <button class="hbtn" id="replayBtn">↻ Replay boot</button>
+      <button class="hbtn live" id="liveJump"><span class="pulse"></span> Live Mode</button>
+    </div>
+  </header>
+
+  <!-- ===================================================== HERO -->
+  <section class="hero">
+    <h2>How <em>modern AI</em> actually works</h2>
+    <p>A hands-on control room. Every glowing node opens a live, playable demo — from how a model predicts the next word to agents, tools, MCP, loops and vibe coding.</p>
+    <div class="hint">▸ CLICK ANY NODE TO EXPLORE &nbsp;·&nbsp; everything runs offline &nbsp;·&nbsp; end at <b>Live Mode</b> to talk to real Claude</div>
+  </section>
+
+  <!-- ===================================================== NODE MAP -->
+  <div id="map">
+    <svg id="edges">
+      <defs>
+        <linearGradient id="egrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#a855f7"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div id="hub">
+      <div class="ring"></div><div class="ring2"></div>
+      <div><b>CLAUDE</b><span>THE CORE</span></div>
+    </div>
+    <!-- nodes injected by JS -->
+  </div>
+
+  <!-- ===================================================== LIVE MODE -->
+  <section id="live">
+    <div class="live-card">
+      <div class="live-top">
+        <span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span>
+        &nbsp;live-mode — claude.messages.stream()
+      </div>
+      <div class="live-body">
+        <h3>▸ <span>Live Mode</span> — talk to the real thing</h3>
+        <p class="mut">Everything above is simulated so it always works. This panel calls the real Anthropic API and streams Claude's actual tokens back — the same next-token prediction you saw in the LLM node, live.</p>
+
+        <div class="live-grid">
+          <div class="keyrow">
+            <input class="field" id="apiKey" type="password" placeholder="sk-ant-…  paste your Anthropic API key" style="flex:1;min-width:220px" autocomplete="off" />
+            <div class="seg" id="modelSeg">
+              <button data-m="claude-haiku-4-5" class="on">Haiku 4.5 ⚡</button>
+              <button data-m="claude-sonnet-5">Sonnet 5</button>
+              <button data-m="claude-opus-4-8">Opus 4.8</button>
+            </div>
+          </div>
+
+          <div class="term" id="term"><span class="sys">// Paste a key, type a message, hit Send. Claude's reply streams in token-by-token.</span>
+</div>
+
+          <div class="keyrow">
+            <input class="field" id="liveInput" placeholder="Ask Claude anything…  e.g. explain MCP to my brother in 2 lines" style="flex:1;min-width:220px" />
+            <button class="btn" id="liveSend" style="border-color:var(--pink);background:rgba(244,114,182,.12);color:var(--pink)">Send ▸</button>
+          </div>
+
+          <div class="note">
+            <b>Your key never leaves this tab.</b> It lives in memory only — not saved to disk, cookies, or localStorage. Refresh the page and it's gone.
+            Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">console.anthropic.com</a>. Uses <span class="kbd">anthropic-dangerous-direct-browser-access</span> so the browser can call the API directly.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>NEURAL.OS · an interactive guide to how modern AI works</span>
+    <b>built with Claude Code · for teaching vibe coding</b>
+  </footer>
+</div>
+
+<!-- ===================================================== PANEL -->
+<div class="scrim" id="scrim"></div>
+<div class="panel" id="panel" role="dialog" aria-modal="true">
+  <div class="phead">
+    <div class="ic" id="pIc"></div>
+    <div>
+      <h3 id="pTitle"></h3>
+      <div class="tg" id="pTag"></div>
+    </div>
+    <button class="pclose" id="pClose" aria-label="Close">✕</button>
+  </div>
+  <div class="pbody" id="pBody"></div>
+</div>
+
+<!-- GSAP (optional; graceful fallback) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+<script>
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s)};
+var hasG=function(){return typeof window.gsap!=="undefined"};
+var esc=function(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})};
+var rand=function(a,b){return a+Math.random()*(b-a)};
+var pick=function(a){return a[Math.floor(Math.random()*a.length)]};
+var sleep=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+
+/* =========================================================== PARTICLE CANVAS */
+(function particles(){
+  var cv=$('#bg'), ctx=cv.getContext('2d'), W,H,pts,DPR=Math.min(window.devicePixelRatio||1,2);
+  function resize(){
+    W=cv.width=innerWidth*DPR; H=cv.height=innerHeight*DPR;
+    cv.style.width=innerWidth+'px'; cv.style.height=innerHeight+'px';
+    var n=Math.min(90,Math.floor(innerWidth*innerHeight/16000));
+    pts=[];
+    for(var i=0;i<n;i++)pts.push({x:Math.random()*W,y:Math.random()*H,
+      vx:rand(-.16,.16)*DPR,vy:rand(-.16,.16)*DPR,r:rand(.7,2.1)*DPR});
+  }
+  function tick(){
+    ctx.clearRect(0,0,W,H);
+    for(var i=0;i<pts.length;i++){
+      var p=pts[i]; p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>W)p.vx*=-1; if(p.y<0||p.y>H)p.vy*=-1;
+      for(var j=i+1;j<pts.length;j++){
+        var q=pts[j], dx=p.x-q.x, dy=p.y-q.y, d=dx*dx+dy*dy, md=(140*DPR)*(140*DPR);
+        if(d<md){
+          var a=(1-d/md)*.26;
+          ctx.strokeStyle='rgba(90,170,220,'+a+')';
+          ctx.lineWidth=DPR*.6; ctx.beginPath();
+          ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+        }
+      }
+    }
+    for(var k=0;k<pts.length;k++){
+      var pp=pts[k];
+      ctx.fillStyle= k%3===0?'rgba(168,85,247,.7)':'rgba(34,211,238,.6)';
+      ctx.beginPath(); ctx.arc(pp.x,pp.y,pp.r,0,7); ctx.fill();
+    }
+    requestAnimationFrame(tick);
+  }
+  addEventListener('resize',resize); resize(); tick();
+})();
+
+/* =========================================================== BOOT SEQUENCE */
+var bootLines=[
+  ['NEURAL.OS','b'],[' v5.0  ·  interactive ai field guide\n','d'],
+  ['> booting neural substrate','' ],['....... ','d'],['[ok]\n','g'],
+  ['> loading transformer weights','' ],['..... ','d'],['[ok]\n','g'],
+  ['> mounting mcp connectors','' ],['....... ','d'],['[ok]\n','g'],
+  ['> spawning agent runtime','' ],['....... ','d'],['[ok]\n','g'],
+  ['> calibrating attention heads','' ],['... ','d'],['[ok]\n','g'],
+  ['\nsystem ready. ','g'],['click any node to begin.','b']
+];
+function spanFor(cls,txt){
+  if(!txt)return '';
+  if(cls==='g')return '<span style="color:var(--green)">'+esc(txt)+'</span>';
+  if(cls==='b'||cls==='v'||cls==='d')return '<span class="'+cls+'">'+esc(txt)+'</span>';
+  return esc(txt);
+}
+function runBoot(){
+  var el=$('#bootText'), boot=$('#boot'); el.innerHTML=''; boot.classList.remove('done');
+  $('#skipWrap').style.display='block';
+  var completed='', i=0, done=false;
+  function finish(){ if(done)return; done=true;
+    boot.classList.add('done'); $('#skipWrap').style.display='none'; revealNodes(); }
+  $('#skipBtn').onclick=finish;
+  function step(){
+    if(done)return;
+    if(i>=bootLines.length){ el.innerHTML=completed+'<span class="cursor"></span>'; setTimeout(finish,700); return; }
+    var seg=bootLines[i], text=seg[0], cls=seg[1], j=0, cur='';
+    (function type(){
+      if(done)return;
+      if(j<text.length){
+        cur+=text[j]; j++;
+        el.innerHTML=completed+spanFor(cls,cur)+'<span class="cursor"></span>';
+        el.parentElement.scrollTop=9999;
+        setTimeout(type, cls==='d'?24:15);
+      } else { completed+=spanFor(cls,text); i++; setTimeout(step, 55); }
+    })();
+  }
+  step();
+}
+
+/* =========================================================== NODE DATA */
+var C={cyan:'var(--cyan)',violet:'var(--violet)',pink:'var(--pink)',green:'var(--green)',amber:'var(--amber)',blue:'var(--blue)',red:'var(--red)'};
+function icBg(c){return 'background:linear-gradient(135deg,'+c+',rgba(255,255,255,.15));color:#04060c;box-shadow:0 0 18px '+c+'55'}
+
+var NODES=[
+  {id:'llm',  ic:'⟢',c:C.cyan,  label:'LLM',        tag:'next-token'},
+  {id:'tok',  ic:'▦',c:C.blue,  label:'Tokens',     tag:'context window'},
+  {id:'attn', ic:'⋈',c:C.violet,label:'Transformer',tag:'attention'},
+  {id:'prompt',ic:'✎',c:C.amber, label:'Prompting',  tag:'how to ask'},
+  {id:'agent',ic:'↻',c:C.green, label:'Agents',     tag:'the loop'},
+  {id:'tool', ic:'⚒',c:C.pink,  label:'Tool Use',   tag:'call functions'},
+  {id:'mcp',  ic:'⧉',c:C.cyan,  label:'MCP',        tag:'usb-c for ai'},
+  {id:'loop', ic:'∞',c:C.blue,  label:'Loops',      tag:'iterate to goal'},
+  {id:'effort',ic:'◑',c:C.violet,label:'Effort',    tag:'thinking depth'},
+  {id:'sub',  ic:'⋔',c:C.amber, label:'Subagents',  tag:'parallel fan-out'},
+  {id:'vibe', ic:'✦',c:C.pink,  label:'Vibe Coding',tag:'how to start'}
+];
+
+/* =========================================================== MAP LAYOUT */
+var mapEl=$('#map'), edges=$('#edges'), hub=$('#hub'), nodeEls=[];
+NODES.forEach(function(n){
+  var b=document.createElement('button');
+  b.className='node'; b.setAttribute('data-id',n.id);
+  b.innerHTML='<div class="ic" style="'+icBg(n.c)+'">'+n.ic+'</div><div class="lb">'+n.label+'</div><div class="tg">'+n.tag+'</div>';
+  b.onclick=function(){openPanel(n)};
+  mapEl.appendChild(b); n.el=b; nodeEls.push(b);
+});
+var lineEls=NODES.map(function(){var l=document.createElementNS('http://www.w3.org/2000/svg','line');edges.appendChild(l);return l;});
+
+function layout(){
+  var stacked=innerWidth<860; mapEl.classList.toggle('stacked',stacked);
+  if(stacked){ NODES.forEach(function(n){n.el.style.left='';n.el.style.top='';}); return; }
+  var w=mapEl.clientWidth, h=mapEl.clientHeight, cx=w/2, cy=h/2, R=Math.min(w,h)*0.40;
+  hub.style.left=cx+'px'; hub.style.top=cy+'px';
+  edges.setAttribute('viewBox','0 0 '+w+' '+h);
+  NODES.forEach(function(n,i){
+    var a=(-90+i*(360/NODES.length))*Math.PI/180;
+    var x=cx+R*Math.cos(a)*1.02, y=cy+R*Math.sin(a);
+    n.el.style.left=x+'px'; n.el.style.top=y+'px'; n._x=x; n._y=y;
+    var l=lineEls[i]; l.setAttribute('x1',cx);l.setAttribute('y1',cy);l.setAttribute('x2',x);l.setAttribute('y2',y);
+  });
+}
+var revealed=false;
+function revealNodes(){
+  layout();
+  if(revealed)return; revealed=true;
+  if(hasG()){
+    gsap.set(nodeEls,{opacity:0,scale:.6});
+    gsap.to(nodeEls,{opacity:1,scale:1,duration:.55,stagger:.05,ease:'back.out(1.6)',delay:.1});
+  } else { nodeEls.forEach(function(e,i){setTimeout(function(){e.style.opacity=1},80*i)}); }
+}
+addEventListener('resize',layout);
+
+/* =========================================================== PANEL CTRL */
+var scrim=$('#scrim'), panel=$('#panel');
+function openPanel(n){
+  $('#pIc').style.cssText=icBg(n.c); $('#pIc').textContent=n.ic;
+  $('#pTitle').textContent=n.label; $('#pTag').textContent=n.tag;
+  var body=$('#pBody'); body.innerHTML='';
+  (DEMOS[n.id]||function(e){e.textContent='—'})(body,n);
+  scrim.classList.add('open'); panel.classList.add('open');
+  if(hasG())gsap.fromTo(panel,{y:14},{y:0,duration:.3,ease:'power2.out'});
+}
+function closePanel(){ scrim.classList.remove('open'); panel.classList.remove('open'); }
+$('#pClose').onclick=closePanel; scrim.onclick=closePanel;
+addEventListener('keydown',function(e){if(e.key==='Escape')closePanel()});
+
+/* =========================================================== HELPERS FOR DEMOS */
+function h(html){var d=document.createElement('div');d.innerHTML=html;return d.firstElementChild;}
+function lead(t){var p=document.createElement('p');p.className='lead';p.innerHTML=t;return p;}
+
+/* =========================================================== DEMOS */
+var DEMOS={};
+
+/* ---- 1. LLM : next-token prediction ---- */
+DEMOS.llm=function(body){
+  body.appendChild(lead('An LLM is a giant <b>next-token prediction</b> machine. Given some text, it produces a probability for <em>every</em> possible next word, then picks one — and repeats. That’s it. All the intelligence emerges from doing this well.'));
+  var d=h('<div class="demo"><h4>Predict the next token</h4>\
+    <div class="chip mono" id="llmText" style="display:block;padding:12px;font-size:14px;color:var(--text);white-space:pre-wrap"></div>\
+    <div id="llmCands" style="margin-top:12px"></div>\
+    <div class="row" style="margin-top:12px">\
+      <button class="btn" id="llmStep">▸ Predict &amp; add one</button>\
+      <button class="btn v" id="llmAuto">⏵ Auto-write</button>\
+      <button class="btn ghost" id="llmReset">↺ Reset</button>\
+    </div>\
+    <div class="mut" style="margin-top:10px">Each bar is how likely the model thinks that word comes next. The highlighted one gets sampled and appended. Notice it’s <b>probabilistic</b> — run it twice, get different text.</div>\
+  </div>');
+  body.appendChild(d);
+  var seed='The best way to learn to code is to';
+  var text=seed, auto=false;
+  var bank={
+    'to':['just','start','build','practice','write','learn'],
+    'just':['start','build','ship','make','try','do'],
+    'start':['building','small','coding','with','simple','experimenting'],
+    'build':['something','a','real','projects','things','small'],
+    'a':['real','small','simple','little','tiny','fun'],
+    'real':['project','thing','app','problem','tool','product'],
+    'project':['you','that','and','—','.','right'],
+    '_':['and','then','the','a','with','to','that','which','so']
+  };
+  function words(t){return t.trim().split(/\s+/)}
+  function candidates(t){
+    var last=words(t).slice(-1)[0].toLowerCase().replace(/[^a-z]/g,'');
+    var pool=(bank[last]||bank['_']).slice();
+    // add a couple generic distractors
+    var extra=['is','more','you','that','it'];
+    while(pool.length<5)pool.push(pick(extra));
+    pool=pool.slice(0,5);
+    var raw=pool.map(function(w,i){return {t:w,p:Math.max(2,60-i*11+rand(-6,6))}});
+    var sum=raw.reduce(function(a,b){return a+b.p},0);
+    raw.forEach(function(r){r.p=r.p/sum});
+    raw.sort(function(a,b){return b.p-a.p});
+    return raw;
+  }
+  function sample(cs){ var r=Math.random(),acc=0; for(var i=0;i<cs.length;i++){acc+=cs[i].p; if(r<=acc)return cs[i];} return cs[0]; }
+  function paintText(){ $('#llmText').innerHTML=esc(text)+'<span class="mono" style="color:var(--cyan)">▮</span>'; }
+  function renderCands(cs,pickIdx){
+    var html=cs.map(function(c,i){
+      return '<div class="cand'+(i===pickIdx?' pick':'')+'"><span class="t">'+esc(c.t)+'</span>\
+        <span class="b"><i style="width:0"></i></span>\
+        <span class="p">'+(c.p*100).toFixed(0)+'%</span></div>';
+    }).join('');
+    $('#llmCands').innerHTML=html;
+    requestAnimationFrame(function(){ [].forEach.call($('#llmCands').querySelectorAll('i'),function(bar,i){bar.style.width=(cs[i].p*100).toFixed(0)+'%';}); });
+  }
+  function step(){
+    var cs=candidates(text); renderCands(cs,-1);
+    var chosen=sample(cs); var idx=cs.indexOf(chosen);
+    setTimeout(function(){ renderCands(cs,idx);
+      setTimeout(function(){ text+=' '+chosen.t; paintText(); }, 380); }, 260);
+  }
+  paintText();
+  $('#llmStep').onclick=step;
+  $('#llmReset').onclick=function(){text=seed;auto=false;$('#llmAuto').textContent='⏵ Auto-write';paintText();$('#llmCands').innerHTML='';};
+  $('#llmAuto').onclick=function(){
+    auto=!auto; this.textContent=auto?'⏸ Stop':'⏵ Auto-write';
+    (function run(){ if(!auto)return; if(words(text).length>34){auto=false;$('#llmAuto').textContent='⏵ Auto-write';return;}
+      step(); setTimeout(run,900); })();
+  };
+};
+
+/* ---- 2. TOKENS & CONTEXT ---- */
+DEMOS.tok=function(body){
+  body.appendChild(lead('Models don’t read letters or words — they read <b>tokens</b> (chunks of text, ~¾ of a word each). Everything you send plus everything Claude writes must fit in the <b>context window</b>. Type below and watch text become tokens.'));
+  var d=h('<div class="demo"><h4>Live tokenizer</h4>\
+    <textarea class="field" id="tokIn">Vibe coding means you describe what you want, and the AI writes it.</textarea>\
+    <div class="chips" id="tokChips" style="margin-top:12px"></div>\
+    <div class="row" style="margin-top:14px;justify-content:space-between">\
+      <span class="mut"><b id="tokN" style="color:var(--cyan)">0</b> tokens · <span id="tokC">0</span> chars</span>\
+      <span class="mut">demo window: 48 tokens</span>\
+    </div>\
+    <div class="bar" style="margin-top:8px"><i id="tokBar"></i></div>\
+    <div class="mut" style="margin-top:12px">This demo caps at 48 for the visual. Real models are vast: Haiku holds 200,000 tokens, and Opus/Sonnet 5 hold <b>1,000,000</b> — roughly a 700-page book — in a single conversation.</div>\
+  </div>');
+  body.appendChild(d);
+  var cols=['#22d3ee','#a855f7','#f472b6','#34d399','#fbbf24','#60a5fa'];
+  function tokenize(t){
+    var m=t.match(/\s+|[A-Za-z]+|[0-9]+|[^\sA-Za-z0-9]/g)||[];
+    var out=[];
+    m.forEach(function(w){
+      if(/^[A-Za-z]{7,}$/.test(w)){ // split long words into subwords ~4-5 chars
+        for(var i=0;i<w.length;i+=4)out.push(w.slice(i,i+4));
+      } else out.push(w);
+    });
+    return out;
+  }
+  function paint(){
+    var t=$('#tokIn').value, toks=tokenize(t);
+    var real=toks.filter(function(x){return x.trim().length>0});
+    $('#tokChips').innerHTML=toks.map(function(w,i){
+      if(!w.trim())return '<span style="width:6px"></span>';
+      var c=cols[i%cols.length];
+      return '<span class="chip" style="border-color:'+c+'66;background:'+c+'18;color:'+c+'">'+esc(w)+'</span>';
+    }).join('');
+    var n=real.length;
+    $('#tokN').textContent=n; $('#tokC').textContent=t.length;
+    $('#tokBar').style.width=Math.min(100,n/48*100).toFixed(0)+'%';
+    $('#tokBar').style.background=n>48?'linear-gradient(90deg,var(--amber),var(--red))':'linear-gradient(90deg,var(--cyan),var(--violet))';
+  }
+  $('#tokIn').addEventListener('input',paint); paint();
+};
+
+/* ---- 3. TRANSFORMER / ATTENTION ---- */
+DEMOS.attn=function(body){
+  body.appendChild(lead('The <b>transformer</b> is the architecture behind every modern LLM. Its trick is <b>attention</b>: to understand a word, the model looks at — <em>attends to</em> — other words. Hover a word to see what it pays attention to.'));
+  var sentence=['The','cat','sat','on','the','mat','because','it','was','tired','.'];
+  // attention map: index -> [ {i, w} ]
+  var A={1:[[7,.9],[9,.5],[2,.4]],7:[[1,.95],[9,.6]],9:[[1,.7],[7,.5]],2:[[1,.8],[5,.4]],5:[[2,.5],[3,.4]],6:[[2,.6],[9,.7]]};
+  var d=h('<div class="demo"><h4>Attention — hover a word</h4>\
+    <div class="attn-wrap"><svg id="attnSvg"></svg><div class="attn-sentence" id="attnS"></div></div>\
+    <div class="mut" style="margin-top:14px" id="attnHint">Hover <span class="kbd">it</span> — the model connects it back to <span class="kbd">cat</span> and <span class="kbd">tired</span>. That’s how it resolves what “it” means. Every word does this, in parallel, across many “heads”.</div>\
+  </div>');
+  body.appendChild(d);
+  var S=$('#attnS'), svg=$('#attnSvg');
+  sentence.forEach(function(w,i){ var s=document.createElement('span'); s.className='aw'; s.textContent=w; s.dataset.i=i; S.appendChild(s); });
+  function center(el){ var r=el.getBoundingClientRect(), pr=S.parentElement.getBoundingClientRect();
+    return {x:r.left-pr.left+r.width/2, y:r.top-pr.top+r.height/2}; }
+  function clear(){ svg.innerHTML=''; [].forEach.call(S.children,function(c){c.classList.remove('src','tgt')}); }
+  function draw(i){
+    clear(); var links=A[i]; if(!links)return;
+    S.children[i].classList.add('src');
+    var a=center(S.children[i]);
+    links.forEach(function(L){
+      var j=L[0],wgt=L[1]; S.children[j].classList.add('tgt');
+      var b=center(S.children[j]);
+      var mx=(a.x+b.x)/2, my=Math.min(a.y,b.y)-30-wgt*20;
+      var p=document.createElementNS('http://www.w3.org/2000/svg','path');
+      p.setAttribute('d','M'+a.x+' '+a.y+' Q '+mx+' '+my+' '+b.x+' '+b.y);
+      p.setAttribute('fill','none'); p.setAttribute('stroke','url(#egrad)');
+      p.setAttribute('stroke-width',(1+wgt*3.5).toFixed(1)); p.setAttribute('opacity',(.35+wgt*.5).toFixed(2));
+      p.setAttribute('stroke-linecap','round');
+      svg.appendChild(p);
+    });
+  }
+  [].forEach.call(S.children,function(c){
+    c.addEventListener('mouseenter',function(){draw(+c.dataset.i)});
+  });
+  S.addEventListener('mouseleave',clear);
+  setTimeout(function(){draw(7)},400); // demo "it"
+};
+
+/* ---- 4. PROMPTING ---- */
+DEMOS.prompt=function(body){
+  body.appendChild(lead('Same model, wildly different results — it all depends on <b>how you ask</b>. Good prompts give a role, context, specifics, a format, and constraints. Type a prompt and watch the quality meter react.'));
+  var d=h('<div class="demo"><h4>Prompt quality lab</h4>\
+    <textarea class="field" id="pp" placeholder="write your prompt…">make it better</textarea>\
+    <div class="row" style="margin-top:10px">\
+      <button class="btn ghost" data-ex="fix the code">✕ vague</button>\
+      <button class="btn ghost" data-ex="You are a senior Python engineer. Refactor this function for readability, add type hints and a docstring, and explain each change in one line. Keep behaviour identical.">✓ specific</button>\
+    </div>\
+    <div style="margin-top:16px" class="row" style="justify-content:space-between"><span class="mut">Prompt strength</span><span class="mono" id="ppScore" style="color:var(--cyan)">0%</span></div>\
+    <div class="bar" style="margin-top:6px"><i id="ppBar"></i></div>\
+    <div class="log" id="ppTips" style="margin-top:14px"></div>\
+  </div>');
+  body.appendChild(d);
+  var signals=[
+    {re:/(you are|act as|as an?|senior|expert)/i, t:'gives the model a <b>role</b>', on:'✓ role set',off:'✕ add a role — “You are a senior…”'},
+    {re:/(format|list|json|table|steps|bullet|one line|markdown)/i, t:'asks for a <b>format</b>', on:'✓ output format',off:'✕ specify a format (list, JSON, steps)'},
+    {re:/(keep|must|don’t|dont|only|without|constraint|identical|under \d)/i, t:'sets <b>constraints</b>', on:'✓ constraints',off:'✕ add constraints (“keep behaviour identical”)'},
+    {re:/(explain|because|so that|why)/i, t:'asks it to <b>explain</b>', on:'✓ reasoning',off:'✕ ask it to explain its choices'},
+    {len:true, t:'has enough <b>detail</b>', on:'✓ detailed',off:'✕ too short — add specifics'}
+  ];
+  function score(){
+    var v=$('#pp').value, s=0, tips=[];
+    signals.forEach(function(sg){
+      var ok = sg.len ? v.trim().split(/\s+/).length>=12 : sg.re.test(v);
+      if(ok)s+=20; tips.push((ok?'<span class="g">'+sg.on+'</span>':'<span class="p">'+sg.off+'</span>'));
+    });
+    $('#ppScore').textContent=s+'%';
+    var bar=$('#ppBar'); bar.style.width=s+'%';
+    bar.style.background=s>=80?'linear-gradient(90deg,var(--green),var(--cyan))':s>=40?'linear-gradient(90deg,var(--amber),var(--cyan))':'linear-gradient(90deg,var(--red),var(--amber))';
+    $('#ppScore').style.color=s>=80?'var(--green)':s>=40?'var(--amber)':'var(--red)';
+    $('#ppTips').innerHTML=tips.join('\n');
+  }
+  $('#pp').addEventListener('input',score);
+  [].forEach.call(d.querySelectorAll('[data-ex]'),function(b){b.onclick=function(){$('#pp').value=b.dataset.ex;score();};});
+  score();
+};
+
+/* ---- 5. AGENTS: the loop ---- */
+DEMOS.agent=function(body){
+  body.appendChild(lead('An <b>agent</b> is a model in a loop. Instead of answering once, it <b class="mono">thinks → acts</b> (uses a tool) <b class="mono">→ observes</b> the result → and repeats until the task is done. This loop is what turns a chatbot into something that gets work done.'));
+  var d=h('<div class="demo"><h4>The agentic loop</h4>\
+    <div class="mut" style="margin-bottom:12px">Task: <b style="color:var(--text)">“What’s the weather in Tokyo, in °F?”</b></div>\
+    <div class="row" style="justify-content:center;gap:22px;margin:6px 0 14px" id="loopDiag"></div>\
+    <div class="row"><button class="btn" id="agRun">⏵ Run agent</button><button class="btn ghost" id="agStep">▸ Step</button><button class="btn ghost" id="agReset">↺</button></div>\
+    <div class="log" id="agLog" style="margin-top:14px"></div>\
+  </div>');
+  body.appendChild(d);
+  var phases=['THINK','ACT','OBSERVE'];
+  var diag=$('#loopDiag');
+  phases.forEach(function(p,i){ diag.appendChild(h('<div class="chip mono" data-p="'+i+'" style="padding:10px 14px;border-radius:12px">'+['🧠','⚒','👁'][i]+' '+p+'</div>')); if(i<2)diag.appendChild(h('<span style="color:var(--dim)">→</span>')); });
+  var steps=[
+    {p:0,t:'<b>Think:</b> I need live weather data. I’ll call the weather tool for Tokyo.',c:''},
+    {p:1,t:'<b>Act:</b> <span class="c">get_weather({ city: "Tokyo" })</span>',c:''},
+    {p:2,t:'<b>Observe:</b> <span class="g">{ temp_c: 18, sky: "clear" }</span>',c:''},
+    {p:0,t:'<b>Think:</b> Got 18°C. The user wants °F. 18×9/5+32 = 64.4. I can answer now.',c:''},
+    {p:2,t:'<b>Done ✓</b> It’s <span class="a">64°F and clear</span> in Tokyo.',c:''}
+  ];
+  var idx=0, running=false;
+  function hl(p){ [].forEach.call(diag.querySelectorAll('[data-p]'),function(c){ c.style.borderColor=(+c.dataset.p===p)?'var(--cyan)':'var(--line2)'; c.style.color=(+c.dataset.p===p)?'var(--cyan)':'var(--text)'; c.style.boxShadow=(+c.dataset.p===p)?'0 0 18px rgba(34,211,238,.25)':'none'; }); }
+  function step(){ if(idx>=steps.length){hl(-1);return false;} var s=steps[idx++]; hl(s.p);
+    $('#agLog').innerHTML+= (idx>1?'\n':'') + s.t; $('#agLog').scrollTop=9999; return true; }
+  function reset(){ idx=0;running=false;$('#agLog').innerHTML='';hl(-1);$('#agRun').textContent='⏵ Run agent'; }
+  $('#agStep').onclick=step;
+  $('#agReset').onclick=reset;
+  $('#agRun').onclick=function(){ if(running){running=false;this.textContent='⏵ Run agent';return;} if(idx>=steps.length)reset();
+    running=true;this.textContent='⏸ Pause';
+    (function go(){ if(!running)return; if(step())setTimeout(go,1100); else {running=false;$('#agRun').textContent='⏵ Run agent';} })(); };
+};
+
+/* ---- 6. TOOL USE ---- */
+DEMOS.tool=function(body){
+  body.appendChild(lead('On its own, a model only knows text. <b>Tools</b> give it hands. It emits a structured <b>tool call</b>, your code runs the real function, and the <b>result flows back</b> into the model — which then keeps going. Watch one round-trip.'));
+  var d=h('<div class="demo"><h4>One tool round-trip</h4>\
+    <div class="log" id="tlLog" style="max-height:280px"></div>\
+    <div class="row" style="margin-top:12px"><button class="btn" id="tlRun">⏵ Run</button><button class="btn ghost" id="tlReset">↺</button></div>\
+  </div>');
+  body.appendChild(d);
+  var frames=[
+    ['<b>user →</b> “Is 987654103 prime?”',''],
+    ['<span class="v">model</span> emits a tool call:',''],
+    ['  <span class="c">{ "tool": "is_prime",</span>',''],
+    ['  <span class="c">  "input": { "n": 987654103 } }</span>',''],
+    ['<span class="a">⚙ your code runs the real function…</span>','wait'],
+    ['<span class="g">tool result → { "prime": false, "factor": 7 }</span>',''],
+    ['result is fed <b>back into</b> the model →',''],
+    ['<span class="v">model →</span> “No — it’s divisible by 7 (7 × 141093443).”','']
+  ];
+  var i=0, run=false;
+  function reset(){i=0;run=false;$('#tlLog').innerHTML='';$('#tlRun').textContent='⏵ Run';}
+  $('#tlReset').onclick=reset;
+  $('#tlRun').onclick=function(){ if(run)return; if(i>=frames.length)reset(); run=true;this.textContent='running…';
+    (function go(){ if(i>=frames.length){run=false;$('#tlRun').textContent='⏵ Run';return;}
+      var f=frames[i++]; $('#tlLog').innerHTML+=(i>1?'\n':'')+f[0]; $('#tlLog').scrollTop=9999;
+      setTimeout(go, f[1]==='wait'?900:520); })(); };
+};
+
+/* ---- 7. MCP ---- */
+DEMOS.mcp=function(body){
+  body.appendChild(lead('<b>MCP (Model Context Protocol)</b> is the “USB-C for AI.” Instead of hard-wiring every integration, you plug in an <b>MCP server</b> and Claude instantly gains its tools — GitHub, your browser, Blender, Gmail, a database. Click a server to plug it in.'));
+  var srv=[
+    {e:'🐙',n:'GitHub',t:'repos, PRs, issues'},
+    {e:'🌐',n:'Chrome',t:'browse, click, read'},
+    {e:'🎨',n:'Blender',t:'3D scenes, render'},
+    {e:'✉️',n:'Gmail',t:'search, draft mail'},
+    {e:'🗂',n:'Files',t:'read/write disk'},
+    {e:'🐘',n:'Postgres',t:'query database'}
+  ];
+  var d=h('<div class="demo"><h4>Plug in MCP servers</h4>\
+    <div style="text-align:center;margin:4px 0 14px"><span class="chip" style="padding:10px 18px;border-color:var(--cyan);color:var(--cyan);font-size:14px">◈ CLAUDE</span>\
+      <div class="mono" style="font-size:11px;color:var(--dim);margin-top:8px">capabilities unlocked: <b id="mcpN" style="color:var(--green)">0</b></div></div>\
+    <div class="mcp-grid" id="mcpGrid"></div>\
+    <div class="log" id="mcpLog" style="margin-top:14px"></div>\
+  </div>');
+  body.appendChild(d);
+  var grid=$('#mcpGrid'), count=0;
+  srv.forEach(function(s,i){
+    var c=h('<div class="mcp-srv"><div class="e">'+s.e+'</div><div class="n">'+s.n+'</div><small>'+s.t+'</small></div>');
+    c.onclick=function(){
+      var on=c.classList.toggle('on'); count+=on?1:-1; $('#mcpN').textContent=count;
+      $('#mcpLog').innerHTML+= (($('#mcpLog').innerHTML)?'\n':'') + (on
+        ? '<span class="g">▸ plugged in '+s.n+'</span> — Claude can now '+s.t+'.'
+        : '<span class="p">▸ unplugged '+s.n+'</span>');
+      $('#mcpLog').scrollTop=9999;
+    };
+    grid.appendChild(c);
+  });
+};
+
+/* ---- 8. LOOPS ---- */
+DEMOS.loop=function(body){
+  body.appendChild(lead('Some jobs aren’t one-shot — you <b>iterate to a goal</b>. A loop keeps refining the work, checking against a target each pass, until it’s good enough (or you say stop). In Claude Code this is literally the <span class="kbd">/loop</span> command.'));
+  var d=h('<div class="demo"><h4>Iterate until the draft scores 95+</h4>\
+    <div class="row" style="justify-content:space-between"><span class="mut">quality</span><span class="mono" id="lpScore" style="color:var(--cyan)">40</span></div>\
+    <div class="bar" style="margin-top:6px"><i id="lpBar" style="width:40%"></i></div>\
+    <div class="row" style="margin-top:14px"><button class="btn" id="lpRun">⏵ Run loop</button><button class="btn ghost" id="lpStep">▸ One pass</button><button class="btn ghost" id="lpReset">↺</button></div>\
+    <div class="log" id="lpLog" style="margin-top:14px"></div>\
+  </div>');
+  body.appendChild(d);
+  var q=40, it=0, run=false, target=95;
+  function reset(){q=40;it=0;run=false;paint();$('#lpLog').innerHTML='';$('#lpRun').textContent='⏵ Run loop';}
+  function paint(){$('#lpScore').textContent=Math.round(q);$('#lpBar').style.width=q+'%';
+    $('#lpBar').style.background=q>=target?'linear-gradient(90deg,var(--green),var(--cyan))':'linear-gradient(90deg,var(--cyan),var(--violet))';}
+  function pass(){ if(q>=target){$('#lpLog').innerHTML+='\n<span class="g">✓ target reached in '+it+' passes — loop exits.</span>';$('#lpLog').scrollTop=9999;return false;}
+    it++; var gain=(target-q)*rand(.28,.5)+rand(.5,2); q=Math.min(99,q+gain); paint();
+    var acts=['tightened the wording','fixed a weak transition','cut 2 filler sentences','sharpened the opening','improved the ending'];
+    $('#lpLog').innerHTML+=(it>1?'\n':'')+'<b>pass '+it+':</b> '+pick(acts)+' → score <span class="c">'+Math.round(q)+'</span>'; $('#lpLog').scrollTop=9999; return true; }
+  $('#lpStep').onclick=pass; $('#lpReset').onclick=reset;
+  $('#lpRun').onclick=function(){ if(run){run=false;this.textContent='⏵ Run loop';return;} if(q>=target)reset();
+    run=true;this.textContent='⏸ Stop';
+    (function go(){ if(!run)return; if(pass())setTimeout(go,750); else {run=false;$('#lpRun').textContent='⏵ Run loop';} })(); };
+};
+
+/* ---- 9. EFFORT ---- */
+DEMOS.effort=function(body){
+  body.appendChild(lead('You can dial how hard the model <b>thinks</b> before answering. Low effort is fast and cheap; high effort spends more “thinking tokens” exploring the problem, giving better answers on hard tasks — for more time and cost. Slide it and ask.'));
+  var levels=['low','medium','high','xhigh','max'];
+  var d=h('<div class="demo"><h4>Reasoning effort</h4>\
+    <div class="seg" id="efSeg" style="width:100%;display:flex"></div>\
+    <div class="row" style="margin-top:14px"><button class="btn v" id="efAsk">▸ Ask a hard question</button><span class="mut" id="efMeta"></span></div>\
+    <div class="log" id="efLog" style="margin-top:14px;min-height:60px"></div>\
+  </div>');
+  body.appendChild(d);
+  var lvl=2;
+  var seg=$('#efSeg');
+  levels.forEach(function(l,i){ var b=h('<button style="flex:1"'+(i===lvl?' class="on"':'')+'>'+l+'</button>');
+    b.onclick=function(){lvl=i;[].forEach.call(seg.children,function(c,j){c.className=j===i?'on':''});meta();}; seg.appendChild(b); });
+  function meta(){ var depth=lvl+1; $('#efMeta').innerHTML='~'+([2,6,14,28,60][lvl])+'k thinking tokens · '+['⚡ instant','fast','balanced','deep','deepest'][lvl]; }
+  meta();
+  var thoughts=['restating the problem precisely','listing what could go wrong','checking an edge case','considering an alternative approach','verifying the arithmetic','stress-testing the assumption','comparing two solutions','double-checking the final answer'];
+  $('#efAsk').onclick=function(){
+    var log=$('#efLog'); log.innerHTML='<span class="mut">question: “If a train leaves… (a genuinely tricky one)”</span>';
+    var n=[1,2,4,6,8][lvl], i=0;
+    (function think(){ if(i<n){ log.innerHTML+='\n<span class="v">● thinking:</span> '+pick(thoughts); log.scrollTop=9999; i++; setTimeout(think, 300); }
+      else { setTimeout(function(){ log.innerHTML+='\n<span class="g">answer:</span> '+(lvl>=2?'a careful, correct, well-justified answer.':(lvl===1?'a decent answer.':'a quick guess — sometimes wrong on hard problems.')); log.scrollTop=9999; },320); } })();
+  };
+};
+
+/* ---- 10. SUBAGENTS ---- */
+DEMOS.sub=function(body){
+  body.appendChild(lead('One agent working alone is slow. A <b>coordinator</b> can <b>fan out</b> to many subagents that work <em>in parallel</em>, then <b>fan back in</b> — synthesizing their findings into one answer. This is how big jobs get done fast (Claude Code calls these <em>workflows</em>).'));
+  var d=h('<div class="demo"><h4>Fan-out → work → synthesize</h4>\
+    <div style="text-align:center"><span class="chip" style="padding:9px 16px;border-color:var(--amber);color:var(--amber)">⋔ coordinator</span></div>\
+    <div class="agents" id="subAgents"></div>\
+    <div class="row" style="margin-top:14px"><button class="btn" id="subRun">⏵ Spawn 4 agents</button><button class="btn ghost" id="subReset">↺</button></div>\
+    <div class="log" id="subLog" style="margin-top:12px"></div>\
+  </div>');
+  body.appendChild(d);
+  var tasks=[['🔎','research','scanned 40 sources'],['🧮','analyze','crunched the numbers'],['✍️','draft','wrote the section'],['🧪','verify','checked the claims']];
+  var wrap=$('#subAgents');
+  function build(){ wrap.innerHTML=tasks.map(function(t,i){
+    return '<div class="ag"><div class="n">'+t[0]+' '+t[1]+'</div><div class="bar"><i id="ag'+i+'"></i></div></div>';
+  }).join(''); }
+  build();
+  $('#subReset').onclick=function(){build();$('#subLog').innerHTML='';$('#subRun').disabled=false;$('#subRun').textContent='⏵ Spawn 4 agents';};
+  $('#subRun').onclick=function(){
+    this.disabled=true; this.textContent='working…'; $('#subLog').innerHTML='<span class="a">▸ coordinator spawned 4 parallel agents</span>';
+    var done=0;
+    tasks.forEach(function(t,i){
+      var bar=$('#ag'+i), p=0, spd=rand(4,9);
+      (function grow(){ p=Math.min(100,p+spd*rand(.6,1.4)); bar.style.width=p+'%';
+        if(p<100)setTimeout(grow,90);
+        else { done++; $('#subLog').innerHTML+='\n<span class="g">✓ '+t[1]+'</span> — '+t[2];$('#subLog').scrollTop=9999;
+          if(done===tasks.length){ setTimeout(function(){ $('#subLog').innerHTML+='\n<span class="v">▸ coordinator merged all 4 → one synthesized answer ✦</span>';$('#subLog').scrollTop=9999; $('#subRun').textContent='✓ done'; },400); } }
+      })();
+    });
+  };
+};
+
+/* ---- 11. VIBE CODING ---- */
+DEMOS.vibe=function(body){
+  body.appendChild(lead('<b>Vibe coding</b> is the whole point: you describe what you want in plain language, the AI builds it, you look at the result, and you steer. You don’t memorize syntax — you direct. Here’s how to be good at it.'));
+  var tips=[
+    ['🎯','Say the goal, not the steps','Describe the outcome and the “why.” “Build a dashboard my brother can click to learn AI.” Let the model plan the how.'],
+    ['🔁','Iterate in small loops','Ship something rough, look at it, then say “make the header bigger, add a demo here.” Steering beats one perfect prompt.'],
+    ['👀','Always review the result','Run it. Read it. The AI is fast but not infallible — you’re the pilot. Trust, then verify.'],
+    ['🗺','Use plan mode for big things','For anything non-trivial, let it propose a plan first, approve it, then build. Fewer surprises.'],
+    ['◑','Turn up effort when it’s hard','Simple edit? Low effort. Gnarly bug or architecture? Crank effort up so it thinks more.'],
+    ['⧉','Plug in tools via MCP','Give it your browser, GitHub, files — the more it can see and do, the more it can build for you.']
+  ];
+  var d=h('<div class="demo"><h4>Six habits of a good vibe coder</h4>\
+    <div id="vibeList"></div>\
+    <div style="text-align:center;margin-top:18px">\
+      <button class="btn" id="vibeGo" style="border-color:var(--pink);background:rgba(244,114,182,.12);color:var(--pink);padding:12px 22px;font-size:13px">Now try it for real — open Live Mode ▸</button>\
+    </div>\
+  </div>');
+  body.appendChild(d);
+  $('#vibeList').innerHTML=tips.map(function(t){
+    return '<div style="display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)">\
+      <div style="font-size:20px">'+t[0]+'</div><div><b style="font-size:14px">'+t[1]+'</b><div class="mut" style="margin-top:2px">'+t[2]+'</div></div></div>';
+  }).join('');
+  $('#vibeGo').onclick=function(){ closePanel(); setTimeout(function(){ $('#live').scrollIntoView({behavior:'smooth'}); $('#liveInput').focus(); },350); };
+};
+
+/* =========================================================== LIVE MODE (real API) */
+(function live(){
+  var model='claude-haiku-4-5';
+  var seg=$('#modelSeg');
+  [].forEach.call(seg.children,function(b){ b.onclick=function(){ model=b.dataset.m;
+    [].forEach.call(seg.children,function(x){x.classList.toggle('on',x===b)}); }; });
+
+  var term=$('#term'), input=$('#liveInput'), sendBtn=$('#liveSend'), keyEl=$('#apiKey');
+  function line(cls,txt){ var s=document.createElement('span'); s.className=cls; s.textContent=txt; term.appendChild(s); term.scrollTop=term.scrollHeight; return s; }
+  function br(){ term.appendChild(document.createTextNode('\n')); }
+
+  var busy=false;
+  async function send(){
+    if(busy)return;
+    var key=keyEl.value.trim(), msg=input.value.trim();
+    if(!msg)return;
+    if(!key){ br();br(); line('err','⚠ Paste your Anthropic API key above first (sk-ant-…).'); br(); return; }
+    busy=true; sendBtn.disabled=true; input.value='';
+    br();br(); line('u','you ▸ '); line('a',msg); br(); line('sys','claude ('+model+') ▸ '); br();
+    var out=line('a',''); var caret=document.createElement('span'); caret.className='caret'; term.appendChild(caret);
+
+    try{
+      var res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{
+          'content-type':'application/json',
+          'x-api-key':key,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body:JSON.stringify({
+          model:model, max_tokens:1024, stream:true,
+          thinking:{type:'disabled'},
+          messages:[{role:'user',content:msg}]
+        })
+      });
+      if(!res.ok){
+        var errText=await res.text(); caret.remove();
+        var m=errText; try{ m=JSON.parse(errText).error.message; }catch(e){}
+        line('err','\n⚠ '+res.status+' — '+m);
+        if(res.status===401)line('err','\n(the key was rejected — check it’s a valid Anthropic key)');
+        finish(); return;
+      }
+      var reader=res.body.getReader(), dec=new TextDecoder(), buf='';
+      while(true){
+        var chunk=await reader.read(); if(chunk.done)break;
+        buf+=dec.decode(chunk.value,{stream:true});
+        var lines=buf.split('\n'); buf=lines.pop();
+        for(var i=0;i<lines.length;i++){
+          var ln=lines[i]; if(ln.indexOf('data:')!==0)continue;
+          var payload=ln.slice(5).trim(); if(!payload||payload==='[DONE]')continue;
+          try{
+            var ev=JSON.parse(payload);
+            if(ev.type==='content_block_delta' && ev.delta && ev.delta.type==='text_delta'){
+              out.textContent+=ev.delta.text; term.scrollTop=term.scrollHeight;
+            } else if(ev.type==='message_stop'){ /* done */ }
+            else if(ev.type==='error'){ line('err','\n⚠ '+(ev.error&&ev.error.message||'stream error')); }
+          }catch(e){}
+        }
+      }
+      caret.remove(); finish();
+    }catch(err){
+      caret.remove();
+      line('err','\n⚠ network error — '+err.message+'\n(are you online? the browser must reach api.anthropic.com)');
+      finish();
+    }
+  }
+  function finish(){ busy=false; sendBtn.disabled=false; br(); input.focus(); }
+
+  sendBtn.onclick=send;
+  input.addEventListener('keydown',function(e){ if(e.key==='Enter')send(); });
+})();
+
+/* =========================================================== WIRING */
+$('#liveJump').onclick=function(){ $('#live').scrollIntoView({behavior:'smooth'}); setTimeout(function(){$('#liveInput').focus()},400); };
+$('#replayBtn').onclick=function(){ runBoot(); };
+
+// init
+layout();
+runBoot();
+})();
+</script>
+</body>
+</html>
